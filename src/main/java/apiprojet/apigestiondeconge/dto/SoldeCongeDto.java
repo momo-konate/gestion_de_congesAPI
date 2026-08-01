@@ -10,11 +10,11 @@ public class SoldeCongeDto {
     @Getter
     @Setter
     public static class Request {
-        @NotNull
+        @NotNull(message = "L'ID de l'employé est obligatoire")
         private Long employeId;
-        @NotNull
+        @NotNull(message = "L'année est obligatoire")
         private Integer annee;
-        @NotNull
+        @NotNull(message = "Les jours acquis sont obligatoires")
         private Integer joursAcquis;
     }
 

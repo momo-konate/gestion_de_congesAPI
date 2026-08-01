@@ -15,6 +15,7 @@ public class TypeCongeDto {
         private String libelle;
         @NotNull
         private Integer nombreJours;
+        @NotNull
         private String description;
     }
 

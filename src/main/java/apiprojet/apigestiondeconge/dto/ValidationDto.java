@@ -14,12 +14,13 @@ public class ValidationDto {
     @Getter
     @Setter
     public static class Request {
-        @NotNull
+        @NotNull(message = "L'ID de la demande est obligatoire")
         private Long demandeId;
-        @NotNull
+        @NotNull(message = "L'ID du manager est obligatoire")
         private Long managerId;
-        @NotNull
+        @NotNull(message = "La décision est obligatoire")
         private DecisionType decision;
+        @NotNull(message = "Le commentaire est obligatoire")
         private String commentaire;
     }
 

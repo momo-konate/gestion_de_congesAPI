@@ -12,6 +12,7 @@ public class DepartementDto {
     public static class Request {
         @NotBlank
         private String nom;
+        @NotBlank
         private String description;
     }
 

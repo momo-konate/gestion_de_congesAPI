@@ -1,14 +1,16 @@
 package apiprojet.apigestiondeconge.service;
 
+import apiprojet.apigestiondeconge.Exceptions.EntityAlreadyExistsException;
+import apiprojet.apigestiondeconge.Exceptions.ResourceNotFoundException;
 import apiprojet.apigestiondeconge.dto.UtilisateurDto;
 import apiprojet.apigestiondeconge.entity.Role;
 import apiprojet.apigestiondeconge.entity.Utilisateur;
+
 import apiprojet.apigestiondeconge.repository.UtilisateurRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 
 import java.util.List;
 
@@ -18,18 +20,25 @@ public class UtilisateurService {
 
     private final UtilisateurRepository utilisateurRepository;
 
+
     @Transactional
     public UtilisateurDto.Response creer(UtilisateurDto.Request request) {
-        utilisateurRepository.findByEmail(request.getEmail()).ifPresent(u -> {
-            throw new IllegalArgumentException("Un utilisateur existe déjà avec cet email : " + request.getEmail());
-        });
+        // Utilisation d'une exception métier -> Déclenchera une erreur 409 CONFLICT
+        if (utilisateurRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new EntityAlreadyExistsException("Un utilisateur existe déjà avec cet email : " + request.getEmail());
+        }
+
+        // Nettoyage du téléphone : si vide "", on enregistre null en BDD
+        String telephone = (request.getTelephone() != null && request.getTelephone().isBlank())
+                ? null
+                : request.getTelephone();
 
         Utilisateur utilisateur = Utilisateur.builder()
                 .nom(request.getNom())
                 .prenom(request.getPrenom())
                 .email(request.getEmail())
-                .motDePasse(request.getMotDePasse()) // TODO: hasher avec BCrypt une fois la sécurité branchée
-                .telephone(request.getTelephone())
+                .motDePasse(request.getMotDePasse()) // TODO: hasher avec BCrypt dès que Security est actif
+                .telephone(telephone)
                 .role(request.getRole())
                 .actif(true)
                 .build();
@@ -38,7 +47,13 @@ public class UtilisateurService {
     }
 
     public List<UtilisateurDto.Response> listerTous() {
-        return utilisateurRepository.findAll().stream().map(this::toResponse).toList();
+        List<Utilisateur> utilisateurs = utilisateurRepository.findAll();
+
+        if (utilisateurs.isEmpty()) {
+            throw new ResourceNotFoundException("Aucun utilisateur trouvé dans la base de données.");
+        }
+
+        return utilisateurs.stream().map(this::toResponse).toList();
     }
 
     public List<UtilisateurDto.Response> listerParRole(Role role) {
@@ -52,12 +67,24 @@ public class UtilisateurService {
     @Transactional
     public UtilisateurDto.Response modifier(Long id, UtilisateurDto.Request request) {
         Utilisateur utilisateur = findOrThrow(id);
+
+        // Vérifier si le nouvel email n'appartient pas déjà à un AUTRE utilisateur
+        utilisateurRepository.findByEmail(request.getEmail())
+                .filter(u -> !u.getId().equals(id))
+                .ifPresent(u -> {
+                    throw new EntityAlreadyExistsException("L'email " + request.getEmail() + " est déjà utilisé.");
+                });
+
+        String telephone = (request.getTelephone() != null && request.getTelephone().isBlank())
+                ? null
+                : request.getTelephone();
+
         utilisateur.setNom(request.getNom());
         utilisateur.setPrenom(request.getPrenom());
         utilisateur.setEmail(request.getEmail());
-        utilisateur.setTelephone(request.getTelephone());
+        utilisateur.setTelephone(telephone);
         utilisateur.setRole(request.getRole());
-        // Mot de passe volontairement non modifié ici ; prévoir un endpoint dédié plus tard
+
         return toResponse(utilisateurRepository.save(utilisateur));
     }
 
@@ -73,9 +100,10 @@ public class UtilisateurService {
         utilisateurRepository.delete(findOrThrow(id));
     }
 
+    // Utilisation d'une exception métier -> Déclenchera une erreur 404 NOT FOUND
     private Utilisateur findOrThrow(Long id) {
         return utilisateurRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable avec l'ID : " + id));
     }
 
     private UtilisateurDto.Response toResponse(Utilisateur u) {
