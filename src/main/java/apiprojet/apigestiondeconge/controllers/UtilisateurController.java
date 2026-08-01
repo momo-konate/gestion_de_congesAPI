@@ -1,5 +1,6 @@
 package apiprojet.apigestiondeconge.controllers;
 
+import apiprojet.apigestiondeconge.config.JwtUtils;
 import apiprojet.apigestiondeconge.dto.UtilisateurDto;
 import apiprojet.apigestiondeconge.entity.Role;
 import apiprojet.apigestiondeconge.service.UtilisateurService;
@@ -17,10 +18,19 @@ import java.util.List;
 public class UtilisateurController {
 
     private final UtilisateurService utilisateurService;
+    private final JwtUtils jwtUtils;
 
     @PostMapping
-    public ResponseEntity<UtilisateurDto.Response> creer(@Valid @RequestBody UtilisateurDto.Request request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(utilisateurService.creer(request));
+    public ResponseEntity<UtilisateurDto.CreateResponse> creer(@Valid @RequestBody UtilisateurDto.Request request) {
+        // 1. Création de l'utilisateur
+        UtilisateurDto.Response utilisateurCree = utilisateurService.creer(request);
+
+        // 2. Génération immédiate du Token JWT avec son rôle
+        String token = jwtUtils.generateToken(utilisateurCree.getEmail(), utilisateurCree.getRole().name());
+
+        // 3. Retourne l'utilisateur + le token JWT
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new UtilisateurDto.CreateResponse(utilisateurCree, token));
     }
 
     @GetMapping

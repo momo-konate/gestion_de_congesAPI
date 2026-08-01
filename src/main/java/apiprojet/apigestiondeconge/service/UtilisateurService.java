@@ -8,10 +8,13 @@ import apiprojet.apigestiondeconge.entity.Utilisateur;
 
 import apiprojet.apigestiondeconge.repository.UtilisateurRepository;
 
+import ch.qos.logback.classic.encoder.JsonEncoder;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -19,25 +22,26 @@ import java.util.List;
 public class UtilisateurService {
 
     private final UtilisateurRepository utilisateurRepository;
-
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public UtilisateurDto.Response creer(UtilisateurDto.Request request) {
-        // Utilisation d'une exception métier -> Déclenchera une erreur 409 CONFLICT
         if (utilisateurRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new EntityAlreadyExistsException("Un utilisateur existe déjà avec cet email : " + request.getEmail());
         }
 
-        // Nettoyage du téléphone : si vide "", on enregistre null en BDD
         String telephone = (request.getTelephone() != null && request.getTelephone().isBlank())
                 ? null
                 : request.getTelephone();
+
+        //  Hachage correct avec BCrypt
+        String motDePasseHache = passwordEncoder.encode(request.getMotDePasse());
 
         Utilisateur utilisateur = Utilisateur.builder()
                 .nom(request.getNom())
                 .prenom(request.getPrenom())
                 .email(request.getEmail())
-                .motDePasse(request.getMotDePasse()) // TODO: hasher avec BCrypt dès que Security est actif
+                .motDePasse(motDePasseHache) // mot de passa hashé
                 .telephone(telephone)
                 .role(request.getRole())
                 .actif(true)

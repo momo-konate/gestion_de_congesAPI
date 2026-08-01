@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,7 +28,7 @@ public class UtilisateurDto {
         private String motDePasse;
         @NotBlank(message = "Le numéro de téléphone est obligatoire")
         private String telephone;
-        @NotNull(message = "L'état actif est obligatoire")
+        @NotNull(message = "Le rôle est obligatoire")
         private Role role;
     }
 
@@ -41,6 +42,13 @@ public class UtilisateurDto {
         private String telephone;
         private Boolean actif;
         private Role role;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class CreateResponse {
+        private UtilisateurDto.Response utilisateur;
+        private String token;
     }
 }
 
