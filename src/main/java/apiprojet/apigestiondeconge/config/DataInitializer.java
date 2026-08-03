@@ -30,7 +30,7 @@ public class DataInitializer implements CommandLineRunner {
                     .build();
 
             utilisateurRepository.save(admin);
-            System.out.println("✅ Compte Administrateur initial créé avec succès ! (email: admin@test.com)");
+            System.out.println("  Compte Administrateur initial créé avec succès ! (email: admin@test.com)");
         }
     }
 }
