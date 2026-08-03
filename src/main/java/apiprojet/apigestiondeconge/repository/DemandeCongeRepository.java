@@ -18,4 +18,6 @@ public interface DemandeCongeRepository extends JpaRepository<DemandeConge, Long
 
     // Utile pour lister les demandes des subordonnés d'un manager
     List<DemandeConge> findByEmployeManagerId(Long managerId);
+
+    List<DemandeConge> findByTypeCongeId(Long typeCongeId);
 }

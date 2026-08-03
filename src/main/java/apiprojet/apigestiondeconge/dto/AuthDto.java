@@ -25,5 +25,9 @@ public class AuthDto {
         private String token;
         private String email;
         private String role;
+        private Long id;
+        private String prenom;
+        private String nom;
+        private Long employeId;
     }
 }

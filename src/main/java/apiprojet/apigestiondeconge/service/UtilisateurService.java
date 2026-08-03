@@ -1,124 +1,46 @@
 package apiprojet.apigestiondeconge.service;
 
-import apiprojet.apigestiondeconge.Exceptions.EntityAlreadyExistsException;
-import apiprojet.apigestiondeconge.Exceptions.ResourceNotFoundException;
 import apiprojet.apigestiondeconge.dto.UtilisateurDto;
 import apiprojet.apigestiondeconge.entity.Role;
-import apiprojet.apigestiondeconge.entity.Utilisateur;
-
-import apiprojet.apigestiondeconge.repository.UtilisateurRepository;
-
-import ch.qos.logback.classic.encoder.JsonEncoder;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.util.Arrays;
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-public class UtilisateurService {
+/**
+ * J'ai créé l'interface UtilisateurService pour séparer le contrat d'opérations sur les utilisateurs de son implémentation.
+ */
+public interface UtilisateurService {
 
-    private final UtilisateurRepository utilisateurRepository;
-    private final PasswordEncoder passwordEncoder;
+    /**
+     * Je crée un nouvel utilisateur avec encodage sécurisé de son mot de passe.
+     */
+    UtilisateurDto.Response creer(UtilisateurDto.Request request);
 
-    @Transactional
-    public UtilisateurDto.Response creer(UtilisateurDto.Request request) {
-        if (utilisateurRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new EntityAlreadyExistsException("Un utilisateur existe déjà avec cet email : " + request.getEmail());
-        }
+    /**
+     * Je liste tous les utilisateurs du système.
+     */
+    List<UtilisateurDto.Response> listerTous();
 
-        String telephone = (request.getTelephone() != null && request.getTelephone().isBlank())
-                ? null
-                : request.getTelephone();
+    /**
+     * Je filtre les utilisateurs selon leur rôle (EMPLOYE, ADMIN).
+     */
+    List<UtilisateurDto.Response> listerParRole(Role role);
 
-        //  Hachage correct avec BCrypt
-        String motDePasseHache = passwordEncoder.encode(request.getMotDePasse());
+    /**
+     * Je recherche un utilisateur à partir de son ID.
+     */
+    UtilisateurDto.Response getById(Long id);
 
-        Utilisateur utilisateur = Utilisateur.builder()
-                .nom(request.getNom())
-                .prenom(request.getPrenom())
-                .email(request.getEmail())
-                .motDePasse(motDePasseHache) // mot de passa hashé
-                .telephone(telephone)
-                .role(request.getRole())
-                .actif(true)
-                .build();
+    /**
+     * Je modifie les informations personnelles et les accès d'un utilisateur.
+     */
+    UtilisateurDto.Response modifier(Long id, UtilisateurDto.Request request);
 
-        return toResponse(utilisateurRepository.save(utilisateur));
-    }
+    /**
+     * Je désactive le compte d'un utilisateur sans le supprimer de la base.
+     */
+    void desactiver(Long id);
 
-    public List<UtilisateurDto.Response> listerTous() {
-        List<Utilisateur> utilisateurs = utilisateurRepository.findAll();
-
-        if (utilisateurs.isEmpty()) {
-            throw new ResourceNotFoundException("Aucun utilisateur trouvé dans la base de données.");
-        }
-
-        return utilisateurs.stream().map(this::toResponse).toList();
-    }
-
-    public List<UtilisateurDto.Response> listerParRole(Role role) {
-        return utilisateurRepository.findByRole(role).stream().map(this::toResponse).toList();
-    }
-
-    public UtilisateurDto.Response getById(Long id) {
-        return toResponse(findOrThrow(id));
-    }
-
-    @Transactional
-    public UtilisateurDto.Response modifier(Long id, UtilisateurDto.Request request) {
-        Utilisateur utilisateur = findOrThrow(id);
-
-        // Vérifier si le nouvel email n'appartient pas déjà à un AUTRE utilisateur
-        utilisateurRepository.findByEmail(request.getEmail())
-                .filter(u -> !u.getId().equals(id))
-                .ifPresent(u -> {
-                    throw new EntityAlreadyExistsException("L'email " + request.getEmail() + " est déjà utilisé.");
-                });
-
-        String telephone = (request.getTelephone() != null && request.getTelephone().isBlank())
-                ? null
-                : request.getTelephone();
-
-        utilisateur.setNom(request.getNom());
-        utilisateur.setPrenom(request.getPrenom());
-        utilisateur.setEmail(request.getEmail());
-        utilisateur.setTelephone(telephone);
-        utilisateur.setRole(request.getRole());
-
-        return toResponse(utilisateurRepository.save(utilisateur));
-    }
-
-    @Transactional
-    public void desactiver(Long id) {
-        Utilisateur utilisateur = findOrThrow(id);
-        utilisateur.setActif(false);
-        utilisateurRepository.save(utilisateur);
-    }
-
-    @Transactional
-    public void supprimer(Long id) {
-        utilisateurRepository.delete(findOrThrow(id));
-    }
-
-    // Utilisation d'une exception métier -> Déclenchera une erreur 404 NOT FOUND
-    private Utilisateur findOrThrow(Long id) {
-        return utilisateurRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable avec l'ID : " + id));
-    }
-
-    private UtilisateurDto.Response toResponse(Utilisateur u) {
-        return UtilisateurDto.Response.builder()
-                .id(u.getId())
-                .nom(u.getNom())
-                .prenom(u.getPrenom())
-                .email(u.getEmail())
-                .telephone(u.getTelephone())
-                .actif(u.getActif())
-                .role(u.getRole())
-                .build();
-    }
+    /**
+     * Je supprime définitivement un compte utilisateur.
+     */
+    void supprimer(Long id);
 }

@@ -17,11 +17,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+
 @Component
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter { //  Doit étendre OncePerRequestFilter
 
     private final JwtUtils jwtUtils;
+    private final SecurityContextRepository securityContextRepository = new RequestAttributeSecurityContextRepository();
 
     @Override
     protected void doFilterInternal(
@@ -45,7 +49,10 @@ public class JwtFilter extends OncePerRequestFilter { //  Doit étendre OncePerR
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(email, null, authorities);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                org.springframework.security.core.context.SecurityContext context = SecurityContextHolder.createEmptyContext();
+                context.setAuthentication(authentication);
+                SecurityContextHolder.setContext(context);
+                securityContextRepository.saveContext(context, request, response);
             }
         }
 

@@ -52,4 +52,15 @@ public class DemandeConge {
 
     @OneToOne(mappedBy = "demandeConge", cascade = CascadeType.ALL)
     private Validation validation;
+
+    // Pièce jointe (justificatif)
+    @Column(name = "justificatif_nom")
+    private String justificatifNom;
+
+    @Column(name = "justificatif_type")
+    private String justificatifType;
+
+    @Lob
+    @Column(name = "justificatif_data", columnDefinition = "LONGBLOB")
+    private byte[] justificatifData;
 }

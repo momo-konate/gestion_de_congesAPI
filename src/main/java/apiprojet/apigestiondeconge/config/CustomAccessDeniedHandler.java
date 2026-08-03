@@ -1,6 +1,6 @@
 package apiprojet.apigestiondeconge.config;
 
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
@@ -28,6 +28,6 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         body.put("message", "Accès refusé : Vous n'avez pas les droits nécessaires pour effectuer cette action.");
         body.put("path", request.getServletPath());
 
-
+        new ObjectMapper().writeValue(response.getOutputStream(), body);
     }
 }

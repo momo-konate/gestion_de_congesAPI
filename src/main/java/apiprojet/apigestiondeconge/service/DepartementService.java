@@ -1,60 +1,36 @@
 package apiprojet.apigestiondeconge.service;
 
 import apiprojet.apigestiondeconge.dto.DepartementDto;
-import apiprojet.apigestiondeconge.entity.Departement;
-import apiprojet.apigestiondeconge.repository.DepartementRepository;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-public class DepartementService {
+/**
+ * J'ai créé cette interface pour déclarer les opérations de gestion des départements de l'entreprise.
+ * Cela permet de découpler les consommateurs (Contrôleurs HTTP) des détails d'implémentation.
+ */
+public interface DepartementService {
 
-    private final DepartementRepository departementRepository;
+    /**
+     * Je crée un nouveau département organisationnel.
+     */
+    DepartementDto.Response creer(DepartementDto.Request request);
 
-    @Transactional
-    public DepartementDto.Response creer(DepartementDto.Request request) {
-        Departement departement = Departement.builder()
-                .nom(request.getNom())
-                .description(request.getDescription())
-                .build();
-        return toResponse(departementRepository.save(departement));
-    }
+    /**
+     * Je récupère la liste complète des départements.
+     */
+    List<DepartementDto.Response> listerTous();
 
-    public List<DepartementDto.Response> listerTous() {
-        return departementRepository.findAll().stream().map(this::toResponse).toList();
-    }
+    /**
+     * Je cherche un département à partir de son identifiant unique.
+     */
+    DepartementDto.Response getById(Long id);
 
-    public DepartementDto.Response getById(Long id) {
-        return toResponse(findOrThrow(id));
-    }
+    /**
+     * Je modifie le libellé ou la description d'un département.
+     */
+    DepartementDto.Response modifier(Long id, DepartementDto.Request request);
 
-    @Transactional
-    public DepartementDto.Response modifier(Long id, DepartementDto.Request request) {
-        Departement departement = findOrThrow(id);
-        departement.setNom(request.getNom());
-        departement.setDescription(request.getDescription());
-        return toResponse(departementRepository.save(departement));
-    }
-
-    @Transactional
-    public void supprimer(Long id) {
-        departementRepository.delete(findOrThrow(id));
-    }
-
-    private Departement findOrThrow(Long id) {
-        return departementRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Département introuvable : " + id));
-    }
-
-    private DepartementDto.Response toResponse(Departement d) {
-        return DepartementDto.Response.builder()
-                .id(d.getId())
-                .nom(d.getNom())
-                .description(d.getDescription())
-                .build();
-    }
+    /**
+     * Je supprime un département par son identifiant.
+     */
+    void supprimer(Long id);
 }

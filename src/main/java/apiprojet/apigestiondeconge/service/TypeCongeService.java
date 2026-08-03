@@ -1,64 +1,36 @@
 package apiprojet.apigestiondeconge.service;
 
 import apiprojet.apigestiondeconge.dto.TypeCongeDto;
-import apiprojet.apigestiondeconge.entity.TypeConge;
-import apiprojet.apigestiondeconge.repository.TypeCongeRepository;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-public class TypeCongeService {
+/**
+ * J'ai créé l'interface TypeCongeService pour abstraire les règles liées aux types de congés
+ * (ex: Congé Payé, RTT, Congé Maladie).
+ */
+public interface TypeCongeService {
 
-    private final TypeCongeRepository typeCongeRepository;
+    /**
+     * Je crée une nouvelle catégorie/type de congé.
+     */
+    TypeCongeDto.Response creer(TypeCongeDto.Request request);
 
-    @Transactional
-    public TypeCongeDto.Response creer(TypeCongeDto.Request request) {
-        TypeConge typeConge = TypeConge.builder()
-                .libelle(request.getLibelle())
-                .nombreJours(request.getNombreJours())
-                .description(request.getDescription())
-                .build();
-        return toResponse(typeCongeRepository.save(typeConge));
-    }
+    /**
+     * Je liste tous les types de congés disponibles dans le système.
+     */
+    List<TypeCongeDto.Response> listerTous();
 
-    public List<TypeCongeDto.Response> listerTous() {
-        return typeCongeRepository.findAll().stream().map(this::toResponse).toList();
-    }
+    /**
+     * Je récupère les informations détaillées d'un type de congé par son ID.
+     */
+    TypeCongeDto.Response getById(Long id);
 
-    public TypeCongeDto.Response getById(Long id) {
-        return toResponse(findOrThrow(id));
-    }
+    /**
+     * Je mets à jour la configuration d'un type de congé.
+     */
+    TypeCongeDto.Response modifier(Long id, TypeCongeDto.Request request);
 
-    @Transactional
-    public TypeCongeDto.Response modifier(Long id, TypeCongeDto.Request request) {
-        TypeConge typeConge = findOrThrow(id);
-        typeConge.setLibelle(request.getLibelle());
-        typeConge.setNombreJours(request.getNombreJours());
-        typeConge.setDescription(request.getDescription());
-        return toResponse(typeCongeRepository.save(typeConge));
-    }
-
-    @Transactional
-    public void supprimer(Long id) {
-        typeCongeRepository.delete(findOrThrow(id));
-    }
-
-    private TypeConge findOrThrow(Long id) {
-        return typeCongeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Type de congé introuvable : " + id));
-    }
-
-    private TypeCongeDto.Response toResponse(TypeConge t) {
-        return TypeCongeDto.Response.builder()
-                .id(t.getId())
-                .libelle(t.getLibelle())
-                .nombreJours(t.getNombreJours())
-                .description(t.getDescription())
-                .build();
-    }
+    /**
+     * Je supprime un type de congé et réassigne proprement les demandes si nécessaire.
+     */
+    void supprimer(Long id);
 }
-

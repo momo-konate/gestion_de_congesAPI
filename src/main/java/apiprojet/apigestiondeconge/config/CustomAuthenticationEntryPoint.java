@@ -1,6 +1,6 @@
 package apiprojet.apigestiondeconge.config;
 
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
@@ -28,5 +28,6 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         body.put("message", "Authentification requise : Veuillez fournir un token JWT valide.");
         body.put("path", request.getServletPath());
 
-
-    }}
+        new ObjectMapper().writeValue(response.getOutputStream(), body);
+    }
+}

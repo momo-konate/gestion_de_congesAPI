@@ -24,4 +24,10 @@ public class DemandeCongeResponse {
 
     private Long typeId;
     private String typeLibelle;
+    private String commentaireValidation;
+    private String validationManagerNom;
+
+
+    private String justificatifNom;
+    private String justificatifType;
 }

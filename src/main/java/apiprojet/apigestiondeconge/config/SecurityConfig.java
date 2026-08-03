@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -29,54 +30,58 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Désactiver la protection CSRF
+                // 1. Désactiver la protection CSRF & Activer le CORS
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // 2. Activation du CORS pour Angular
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // 3. Gestion des sessions en mode STATELESS
+                // 2. Mode STATELESS (JWT)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 4. Gestion personnalisée des exceptions HTTP Security
+                // 3. Gestion personnalisée des erreurs Security (401 & 403)
                 .exceptionHandling(exception -> exception
                         .accessDeniedHandler(accessDeniedHandler)
+                        .authenticationEntryPoint(authenticationEntryPoint)
                 )
 
-                .exceptionHandling(exception -> exception
-                        .accessDeniedHandler(accessDeniedHandler) // Rejet des permissions insuffisantes (403)
-                        .authenticationEntryPoint(authenticationEntryPoint) // Rejet de l'absence de token valide (401)
-                )
-                // 5. Protection des routes par Rôle (RBAC)
+                // 4. Protection des routes (RBAC)
                 .authorizeHttpRequests(auth -> auth
-                        // ---  ACCÈS PUBLIC (Uniquement l'authentification et la console H2) ---
-                        .requestMatchers("/api/auth/**", "/h2-console/**").permitAll()
+                        // --- ACCÈS PUBLIC (Swagger UI + OpenAPI Docs + Auth + H2) ---
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/v3/api-docs",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-resources/**",
+                                "/webjars/**",
+                                "/api/auth/**",
+                                "/h2-console/**"
+                        ).permitAll()
 
-                        // ---  CRÉATION & GESTION DES COMPTES (STRICTEMENT RESERVE A L'ADMIN) ---
-                        // Seul l'ADMIN peut faire des POST, GET, PUT, DELETE sur les utilisateurs et employés
-                        .requestMatchers("/api/utilisateurs/**").hasAuthority("ADMIN")
-                        .requestMatchers("/api/employes/**").hasAuthority("ADMIN")
-                        .requestMatchers("/api/departements/**").hasAuthority("ADMIN")
+                        // --- GESTION DES COMPTES (ADMIN SEULEMENT) ---
+                        .requestMatchers(HttpMethod.POST, "/api/utilisateurs/**", "/api/employes/**", "/api/departements/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/utilisateurs/**", "/api/employes/**", "/api/departements/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/utilisateurs/**", "/api/employes/**", "/api/departements/**").hasAuthority("ADMIN")
 
-                        // --- 👤 ACTIONS RÉSERVÉES AUX EMPLOYÉS (ET ADMIN) ---
-                        // 1. Soumettre une demande de congé
+                        // --- LECTURE EMPLOYES & DEPARTEMENTS (tous authentifiés) ---
+                        .requestMatchers(HttpMethod.GET, "/api/employes/**", "/api/departements/**").hasAnyAuthority("EMPLOYE", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/utilisateurs/**").hasAuthority("ADMIN")
+
+                        // --- ACTIONS EMPLOYÉS & ADMIN ---
                         .requestMatchers(HttpMethod.POST, "/api/conges/**").hasAnyAuthority("EMPLOYE", "ADMIN")
-                        // 2. Consulter son propre solde et ses propres demandes
-                        .requestMatchers(HttpMethod.GET, "/api/soldes-conge/**", "/api/demandes-conge/**")
-                        .hasAnyAuthority("EMPLOYE", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/soldes-conge/**", "/api/demandes-conge/**").hasAnyAuthority("EMPLOYE", "ADMIN")
 
-                        // ---  VALIDATION DES CONGÉS (ADMIN SEULEMENT) ---
+                        // --- VALIDATION DES CONGÉS (ADMIN SEULEMENT) ---
                         .requestMatchers(HttpMethod.PUT, "/api/validations/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/validations/**").hasAuthority("ADMIN")
 
-                        // ---  TOUTE AUTRE REQUÊTE ---
+                        // --- TOUTE AUTRE REQUÊTE ---
                         .anyRequest().authenticated()
                 )
 
-                // 6. Autoriser les frames pour H2
+                // 5. Autoriser les frames pour H2 Console
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
 
-                // 7. Ajouter le filtre JWT
+                // 6. Filtre JWT
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -87,7 +92,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:4200"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
